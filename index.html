@@ -101,6 +101,9 @@
         </div>
 
         <div class="mt-auto p-6 border-t border-slate-200/50 text-center">
+            <a href="https://alexbahy-tech.github.io/smartkurikulumsmkn1mt/" class="flex items-center justify-center gap-2 w-full py-3 bg-red-50 text-red-500 hover:bg-red-500 hover:text-white rounded-xl text-xs font-bold transition-all mb-4 border border-red-100 group">
+                <i class="fa-solid fa-arrow-right-from-bracket group-hover:-translate-x-1 transition-transform"></i> Keluar Aplikasi
+            </a>
             <p class="text-[10px] text-slate-500 font-medium">&copy; 2024-2027 Academic System</p>
         </div>
     </aside>
@@ -123,9 +126,15 @@
                     </button>
                 </div>
 
-                <button onclick="document.getElementById('modalAdd').classList.remove('hidden')" class="bg-slate-900 hover:bg-slate-800 text-white px-4 py-2 rounded-full text-xs font-bold shadow-lg transition flex items-center gap-2">
-                    <i class="fa-solid fa-plus"></i> <span class="hidden sm:inline">Siswa</span>
-                </button>
+                <div class="flex items-center gap-2">
+                    <a href="https://alexbahy-tech.github.io/smartkurikulumsmkn1mt/" class="md:hidden w-8 h-8 rounded-full bg-red-50 text-red-500 flex items-center justify-center hover:bg-red-100 shadow-sm border border-red-100" title="Keluar">
+                        <i class="fa-solid fa-right-from-bracket text-xs"></i>
+                    </a>
+
+                    <button onclick="document.getElementById('modalAdd').classList.remove('hidden')" class="bg-slate-900 hover:bg-slate-800 text-white px-4 py-2 rounded-full text-xs font-bold shadow-lg transition flex items-center gap-2">
+                        <i class="fa-solid fa-plus"></i> <span class="hidden sm:inline">Siswa</span>
+                    </button>
+                </div>
             </div>
 
             <div id="raporFilters" class="flex flex-col md:flex-row gap-3 items-center justify-between bg-white/40 p-2 rounded-2xl border border-white/50">
@@ -226,7 +235,8 @@
     </div>
 
     <script>
-        const APP_URL = "https://script.google.com/macros/s/AKfycbyGpwz8x4mt9MeeIOriF_bsAzJGk7hhIPfljaNTGX3qAn9Lr8VBVsZht4rxKek5VAfL/exec";
+        // GANTI DENGAN URL WEB APP GOOGLE SCRIPT ANDA
+        const APP_URL = "https://script.google.com/macros/s/AKfycbx69JGhUYkPi8B1HzoZ6i0u2KEd3N5ftuaNRZkGbZ8k_5OAge56R_XBFOAUX5ftrUUQ/exec";
 
         let state = {
             mode: 'RAPOR', // 'RAPOR' or 'IDENTITAS'
