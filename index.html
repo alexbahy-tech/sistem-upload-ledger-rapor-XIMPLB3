@@ -3,416 +3,549 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard Admin TK2</title>
+    <title>Sistem Manajemen Rapor</title>
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
-        body {
-            font-family: 'Plus Jakarta Sans', sans-serif;
-            background: linear-gradient(135deg, #2193b0 0%, #6dd5ed 40%, #b6fbff 70%, #f6d365 100%);
-            background-attachment: fixed;
-            min-height: 100vh;
-        }
-        .glass {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.6);
-            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
-            border-radius: 20px;
-        }
-        .semester-tab { transition: all 0.3s ease; }
-        .semester-tab.active {
-            background: linear-gradient(135deg, #2193b0 0%, #6dd5ed 100%);
-            color: white; border-color: transparent; shadow: lg;
-        }
-        .student-card { transition: all 0.3s ease; }
-        .student-card:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
-        .nav-glass { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(20px); }
-        .modal-overlay { backdrop-filter: blur(5px); }
-        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 20px; }
-    </style>
-</head>
-<body class="pb-20">
+
     <script>
-        // --- KONFIGURASI PENTING ---
-        // Ganti URL ini dengan URL Web App Anda yang baru jika melakukan deployment ulang
-        const APP_URL = "https://script.google.com/macros/s/AKfycbx69JGhUYkPi8B1HzoZ6i0u2KEd3N5ftuaNRZkGbZ8k_5OAge56R_XBFOAUX5ftrUUQ/exec";
-        
-        // Array Tahun Ajaran (Bisa ditambah nanti)
-        const academicYears = ['2024/2025', '2025/2026', '2026/2027']; 
-        const semesters = [
-            { id: 'ganjil', name: 'Ganjil', icon: '1️⃣' },
-            { id: 'genap', name: 'Genap', icon: '2️⃣' }
-        ];
-        
-        // State Global
-        let currentYear = '2024/2025'; 
-        let currentSemester = 'ganjil';
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['"Outfit"', 'sans-serif'] },
+                    colors: {
+                        primary: '#6366f1', // Indigo
+                        secondary: '#a855f7', // Purple
+                        glass: 'rgba(255, 255, 255, 0.7)',
+                    }
+                }
+            }
+        }
     </script>
 
-    <nav class="nav-glass sticky top-0 z-50 border-b border-slate-100 shadow-sm">
-        <div class="max-w-7xl mx-auto px-4 py-4 flex flex-col sm:flex-row justify-between items-center gap-4 sm:gap-0">
-            <div class="flex items-center gap-4 w-full sm:w-auto">
-                <div class="bg-blue-600 text-white w-10 h-10 rounded-lg flex items-center justify-center font-bold shadow-md shrink-0">
-                    <i class="fa-solid fa-graduation-cap"></i>
-                </div>
-                <div>
-                    <h1 class="font-bold text-lg text-slate-800 leading-tight">Admin Dashboard</h1>
-                    <p class="text-xs text-slate-500 font-semibold">MANAJEMEN RAPOR & DATA</p>
-                </div>
-            </div>
+    <style>
+        /* Background Gradasi Animasi */
+        body {
+            background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+            min-height: 100vh;
+        }
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
 
-            <div class="flex gap-2 w-full sm:w-auto justify-end">
-                <button onclick="triggerUploadLedger()" class="flex-1 sm:flex-none justify-center bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm font-bold transition flex items-center gap-2 shadow-lg shadow-emerald-200">
-                    <i class="fa-solid fa-cloud-arrow-up"></i> <span class="hidden md:inline">Ledger</span>
-                </button>
-                
-                <button onclick="openAddModal()" class="flex-1 sm:flex-none justify-center bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-bold transition flex items-center gap-2 shadow-lg shadow-blue-200">
-                    <i class="fa-solid fa-user-plus"></i> <span class="hidden md:inline">Siswa</span>
-                </button>
-
-                <a href="https://alexbahy-tech.github.io/Portal-ledger-Rapor-Semester-Ganjil-2025-2026/" 
-                   class="flex-1 sm:flex-none justify-center bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-bold transition flex items-center gap-2 shadow-lg shadow-red-200">
-                    <i class="fa-solid fa-right-from-bracket"></i> 
-                    <span class="hidden md:inline">Keluar</span>
-                </a>
-            </div>
-        </div>
-    </nav>
-
-    <main class="max-w-7xl mx-auto px-4 py-8">
-        <div class="glass p-6 mb-8 border-t-4 border-blue-500">
-            <div class="flex flex-col lg:flex-row gap-8">
-                <div class="flex-1">
-                    <label class="block text-xs font-extrabold text-slate-500 uppercase tracking-wider mb-3">
-                        <i class="fa-solid fa-calendar-days mr-1 text-blue-500"></i> Tahun Pelajaran
-                    </label>
-                    <div class="grid grid-cols-3 gap-2" id="yearTabs"></div>
-                </div>
-                <div class="flex-1">
-                    <label class="block text-xs font-extrabold text-slate-500 uppercase tracking-wider mb-3">
-                        <i class="fa-solid fa-bookmark mr-1 text-blue-500"></i> Semester
-                    </label>
-                    <div class="grid grid-cols-2 gap-2" id="semesterTabs"></div>
-                </div>
-            </div>
-        </div>
-
-        <div class="glass p-4 mb-6 flex items-center gap-3">
-            <i class="fa-solid fa-search text-slate-400 pl-2"></i>
-            <input type="text" id="search" placeholder="Cari Siswa..." class="w-full bg-transparent outline-none font-semibold text-slate-600" onkeyup="filterStudents()">
-            <button onclick="loadData()" class="text-slate-400 hover:text-blue-500 transition"><i class="fa-solid fa-rotate"></i></button>
-        </div>
-
-        <div id="loader" class="text-center py-20 hidden">
-            <i class="fa-solid fa-circle-notch fa-spin text-4xl text-blue-500"></i>
-            <p class="mt-2 text-slate-500 font-medium">Mengambil Data...</p>
-        </div>
+        /* Glassmorphism Styles */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+        }
         
-        <div id="grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+        .glass-card {
+            background: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .glass-card:hover {
+            transform: translateY(-5px);
+            background: rgba(255, 255, 255, 0.95);
+            box-shadow: 0 15px 30px -5px rgba(0, 0, 0, 0.1);
+        }
 
-        <div id="emptyState" class="hidden text-center py-20 text-slate-400">
-            <i class="fa-regular fa-folder-open text-5xl mb-3"></i>
-            <p>Data tidak ditemukan</p>
+        /* Mode Switcher */
+        .mode-active { background: #1e293b; color: white; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
+        .mode-inactive { color: #64748b; background: transparent; }
+        .mode-inactive:hover { background: rgba(255,255,255,0.5); color: #475569; }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-thumb { background: rgba(99, 102, 241, 0.5); border-radius: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+    </style>
+</head>
+<body class="text-slate-800 antialiased overflow-hidden flex flex-col md:flex-row h-screen">
+
+    <aside class="hidden md:flex flex-col w-72 glass-panel border-r border-white/30 z-20 shadow-2xl h-full">
+        <div class="p-8 border-b border-slate-200/50">
+            <div class="flex items-center gap-3 text-primary">
+                <i class="fa-solid fa-graduation-cap text-3xl drop-shadow-sm"></i>
+                <div>
+                    <h1 class="font-bold text-2xl tracking-tight text-slate-900">E-Rapor</h1>
+                    <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Admin Dashboard</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="p-6">
+            <div class="bg-gradient-to-br from-white to-slate-50 p-4 rounded-2xl border border-white shadow-sm flex items-center gap-4 mb-8">
+                <div class="w-12 h-12 rounded-full bg-gradient-to-tr from-primary to-secondary text-white flex items-center justify-center font-bold text-lg shadow-lg">
+                    RA
+                </div>
+                <div class="overflow-hidden">
+                    <p class="text-[10px] text-primary font-bold uppercase mb-0.5">Logged in as</p>
+                    <h3 class="text-xs font-bold text-slate-800 truncate" title="R.A. Ririhena, S.MG">R.A. Ririhena, S.MG</h3>
+                </div>
+            </div>
+
+            <nav class="space-y-2">
+                <button class="w-full flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-slate-800 to-slate-900 text-white rounded-xl shadow-lg transition transform hover:scale-[1.02]">
+                    <i class="fa-solid fa-chart-pie w-5"></i> Dashboard Utama
+                </button>
+            </nav>
+        </div>
+
+        <div class="mt-auto p-6 border-t border-slate-200/50 text-center">
+            <p class="text-[10px] text-slate-500 font-medium">&copy; 2024-2027 Academic System</p>
+        </div>
+    </aside>
+
+    <main class="flex-1 flex flex-col relative h-full overflow-hidden">
+        
+        <header class="glass-panel sticky top-0 z-30 px-6 py-4 flex flex-col gap-4 shadow-sm">
+            
+            <div class="flex justify-between items-center">
+                <div class="md:hidden flex items-center gap-2 text-slate-800">
+                    <i class="fa-solid fa-graduation-cap text-xl"></i> <span class="font-bold">E-Rapor</span>
+                </div>
+                
+                <div class="flex bg-slate-200/50 p-1.5 rounded-full shadow-inner mx-auto md:mx-0">
+                    <button onclick="setMode('RAPOR')" id="modeRapor" class="mode-active px-6 py-2 rounded-full text-xs font-bold flex items-center gap-2 transition-all">
+                        <i class="fa-solid fa-file-invoice"></i> Mode Rapor
+                    </button>
+                    <button onclick="setMode('IDENTITAS')" id="modeIdentitas" class="mode-inactive px-6 py-2 rounded-full text-xs font-bold flex items-center gap-2 transition-all">
+                        <i class="fa-regular fa-id-card"></i> Mode Identitas
+                    </button>
+                </div>
+
+                <button onclick="document.getElementById('modalAdd').classList.remove('hidden')" class="bg-slate-900 hover:bg-slate-800 text-white px-4 py-2 rounded-full text-xs font-bold shadow-lg transition flex items-center gap-2">
+                    <i class="fa-solid fa-plus"></i> <span class="hidden sm:inline">Siswa</span>
+                </button>
+            </div>
+
+            <div id="raporFilters" class="flex flex-col md:flex-row gap-3 items-center justify-between bg-white/40 p-2 rounded-2xl border border-white/50">
+                
+                <div class="flex items-center gap-2 w-full md:w-auto">
+                    <div class="relative">
+                        <select id="selYear" onchange="refreshData()" class="appearance-none bg-white/80 border-none pl-4 pr-8 py-2 rounded-xl text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-primary shadow-sm cursor-pointer">
+                            <option value="2024/2025">TP 2024/2025</option>
+                            <option value="2025/2026">TP 2025/2026</option>
+                            <option value="2026/2027">TP 2026/2027</option>
+                        </select>
+                        <i class="fa-solid fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-slate-400 pointer-events-none"></i>
+                    </div>
+                    
+                    <div class="flex bg-slate-200/50 rounded-xl p-1">
+                        <button onclick="setSemester('ganjil')" id="btnGanjil" class="px-4 py-1.5 rounded-lg text-[10px] font-bold uppercase transition bg-white text-primary shadow-sm">Ganjil</button>
+                        <button onclick="setSemester('genap')" id="btnGenap" class="px-4 py-1.5 rounded-lg text-[10px] font-bold uppercase transition text-slate-500 hover:text-slate-700">Genap</button>
+                    </div>
+                </div>
+
+                <div class="w-full md:w-auto flex items-center gap-2">
+                    <div id="ledgerInfo" class="text-[10px] font-bold text-slate-500 hidden md:block text-right leading-tight">
+                        Cek Status<br>Ledger
+                    </div>
+                    <button id="btnLedger" onclick="handleLedger()" class="flex-1 md:flex-none flex items-center justify-center gap-2 px-5 py-2.5 bg-slate-300 text-slate-500 rounded-xl text-xs font-bold transition hover:bg-slate-400 shadow-sm">
+                        <i class="fa-solid fa-spinner fa-spin"></i> Loading...
+                    </button>
+                    <a id="dlLedger" href="#" target="_blank" class="hidden w-9 h-9 bg-emerald-100 text-emerald-600 rounded-xl flex items-center justify-center hover:bg-emerald-200 shadow-sm transition">
+                        <i class="fa-solid fa-download"></i>
+                    </a>
+                </div>
+            </div>
+
+             <div class="relative">
+                <i class="fa-solid fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                <input type="text" id="searchInput" onkeyup="filterGrid()" placeholder="Cari Nama Siswa..." class="w-full pl-10 pr-4 py-2 bg-white/60 border-none rounded-xl text-sm focus:ring-2 focus:ring-primary outline-none shadow-sm backdrop-blur-sm">
+            </div>
+        </header>
+
+        <div class="flex-1 overflow-y-auto p-6 scroll-smooth">
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                <div id="cardStatRapor" class="glass-panel p-5 rounded-3xl relative overflow-hidden group">
+                    <div class="absolute right-0 top-0 p-4 opacity-10 group-hover:opacity-20 transition"><i class="fa-solid fa-book-open text-6xl"></i></div>
+                    <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Kelengkapan Rapor</p>
+                    <div class="flex items-end gap-2">
+                        <h2 class="text-3xl font-bold text-primary" id="countRapor">0</h2>
+                        <span class="text-sm font-medium text-slate-400 mb-1.5">/ <span class="totalSiswa">0</span> Siswa</span>
+                    </div>
+                    <div class="w-full bg-slate-200 rounded-full h-1.5 mt-3 overflow-hidden">
+                        <div id="barRapor" class="bg-primary h-full w-0 transition-all duration-1000"></div>
+                    </div>
+                    <p class="text-[10px] text-slate-400 mt-2 text-right" id="pctRapor">0% Selesai</p>
+                </div>
+
+                <div id="cardStatIdentitas" class="glass-panel p-5 rounded-3xl relative overflow-hidden group hidden">
+                    <div class="absolute right-0 top-0 p-4 opacity-10 group-hover:opacity-20 transition"><i class="fa-regular fa-id-card text-6xl"></i></div>
+                    <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Kelengkapan Identitas</p>
+                    <div class="flex items-end gap-2">
+                        <h2 class="text-3xl font-bold text-secondary" id="countIdentitas">0</h2>
+                        <span class="text-sm font-medium text-slate-400 mb-1.5">/ <span class="totalSiswa">0</span> Siswa</span>
+                    </div>
+                    <div class="w-full bg-slate-200 rounded-full h-1.5 mt-3 overflow-hidden">
+                        <div id="barIdentitas" class="bg-secondary h-full w-0 transition-all duration-1000"></div>
+                    </div>
+                    <p class="text-[10px] text-slate-400 mt-2 text-right" id="pctIdentitas">0% Selesai</p>
+                </div>
+            </div>
+
+            <div id="loader" class="py-20 flex flex-col items-center justify-center">
+                <i class="fa-solid fa-circle-notch fa-spin text-4xl text-white mb-4 drop-shadow-md"></i>
+                <p class="text-white font-bold animate-pulse drop-shadow-md">Sinkronisasi Database...</p>
+            </div>
+
+            <div id="gridContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 hidden pb-20">
+                </div>
+            
+            <div id="emptyState" class="hidden py-10 text-center">
+                <p class="text-slate-500 font-medium">Tidak ada data siswa ditemukan.</p>
+            </div>
         </div>
     </main>
 
-    <input type="file" id="fileInput" class="hidden" accept=".pdf, .xls, .xlsx">
+    <input type="file" id="fileInput" class="hidden" accept=".pdf,.xls,.xlsx">
 
-    <div id="modalAdd" class="fixed inset-0 bg-slate-900/50 z-[60] hidden flex items-center justify-center p-4 modal-overlay">
-        <div class="glass bg-white w-full max-w-md p-6">
-            <h3 class="font-bold text-xl mb-4">Tambah Siswa</h3>
-            <input type="text" id="newNama" placeholder="Nama Lengkap" class="w-full mb-3 px-4 py-3 bg-slate-50 rounded-lg border focus:ring-2 focus:ring-blue-200 outline-none">
-            <input type="number" id="newNis" placeholder="NIS" class="w-full mb-6 px-4 py-3 bg-slate-50 rounded-lg border focus:ring-2 focus:ring-blue-200 outline-none">
-            <div class="flex gap-2">
-                <button onclick="closeAddModal()" class="flex-1 py-3 bg-slate-100 rounded-lg font-bold text-slate-600">Batal</button>
-                <button onclick="addStudent()" class="flex-1 py-3 bg-blue-500 text-white rounded-lg font-bold">Simpan</button>
+    <div id="modalAdd" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl p-8 w-full max-w-sm shadow-2xl transform scale-100 transition-all">
+            <h3 class="text-xl font-bold text-slate-800 mb-6">Tambah Siswa</h3>
+            <div class="space-y-4">
+                <input type="text" id="newNama" placeholder="Nama Lengkap" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-primary font-medium">
+                <input type="number" id="newNis" placeholder="NIS" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-primary font-medium">
             </div>
-        </div>
-    </div>
-
-    <div id="modalUpload" class="fixed inset-0 bg-slate-900/50 z-[60] hidden flex items-center justify-center p-4 modal-overlay">
-        <div class="glass bg-white w-full max-w-lg p-6">
-            <div class="flex justify-between items-center mb-6">
-                <h3 class="font-bold text-xl flex items-center gap-2">
-                    <i class="fa-solid fa-cloud-arrow-up text-blue-500"></i> Upload Rapor
-                </h3>
-                <button onclick="closeUploadModal()" class="text-slate-400 hover:text-red-500"><i class="fa-solid fa-times text-xl"></i></button>
+            <div class="flex gap-3 mt-8">
+                <button onclick="document.getElementById('modalAdd').classList.add('hidden')" class="flex-1 py-3 border border-slate-200 text-slate-600 font-bold rounded-xl hover:bg-slate-50 text-xs">BATAL</button>
+                <button onclick="saveStudent()" class="flex-1 py-3 bg-slate-900 text-white font-bold rounded-xl hover:bg-slate-800 text-xs shadow-lg">SIMPAN</button>
             </div>
-            
-            <div class="bg-blue-50 p-4 rounded-xl mb-4 border border-blue-100">
-                <p class="text-xs text-blue-600 font-bold uppercase mb-1">Target Penyimpanan</p>
-                <div class="flex justify-between font-bold text-slate-700 text-sm">
-                    <span id="dispUpYear"></span>
-                    <span id="dispUpSem" class="uppercase text-blue-600"></span>
-                </div>
-            </div>
-
-            <div class="mb-6">
-                <label class="block text-sm font-bold text-slate-600 mb-2">Nama File / Keterangan</label>
-                <input type="text" id="uploadFileName" class="w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-blue-400 outline-none transition" placeholder="Contoh: Rapor UTS, Rapor UAS, Remedial">
-                <p class="text-xs text-slate-400 mt-2">*Nama file akan otomatis ditambahkan tahun & semester.</p>
-            </div>
-
-            <button onclick="confirmUpload()" class="w-full py-3 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-xl font-bold shadow-lg shadow-blue-200 hover:scale-[1.02] transition">
-                Pilih File PDF
-            </button>
-        </div>
-    </div>
-
-    <div id="modalFiles" class="fixed inset-0 bg-slate-900/50 z-[70] hidden flex items-center justify-center p-4 modal-overlay">
-        <div class="glass bg-white w-full max-w-2xl h-[85vh] flex flex-col p-6">
-            <div class="flex justify-between items-center mb-4 border-b pb-4">
-                <div>
-                    <h3 class="font-bold text-xl text-slate-800" id="fileTitle">Dokumen Siswa</h3>
-                    <p class="text-sm text-blue-600 font-semibold mt-1" id="fileSubtitle">Memuat...</p>
-                </div>
-                <button onclick="document.getElementById('modalFiles').classList.add('hidden')" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-red-100 hover:text-red-500 transition"><i class="fa-solid fa-times"></i></button>
-            </div>
-            <div id="fileContainer" class="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-2"></div>
         </div>
     </div>
 
     <script>
-        let allData = [];
-        let uploadType = '';
-        let currentRow = null;
+        const APP_URL = "https://script.google.com/macros/s/AKfycbyGpwz8x4mt9MeeIOriF_bsAzJGk7hhIPfljaNTGX3qAn9Lr8VBVsZht4rxKek5VAfL/exec";
 
-        window.onload = function() {
-            renderTabs();
-            loadData();
+        let state = {
+            mode: 'RAPOR', // 'RAPOR' or 'IDENTITAS'
+            year: '2024/2025',
+            semester: 'ganjil',
+            students: [],
+            stats: { rapor: 0, identitas: 0 }
         };
+        let activeUpload = null;
 
-        // 1. RENDER TABS (Dinamis)
-        function renderTabs() {
-            const yTab = document.getElementById('yearTabs');
-            const sTab = document.getElementById('semesterTabs');
-            
-            yTab.innerHTML = '';
-            academicYears.forEach(y => {
-                const btn = document.createElement('button');
-                btn.className = `semester-tab px-3 py-2 rounded-lg font-bold text-sm border ${y === currentYear ? 'active shadow-lg' : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'}`;
-                btn.textContent = y;
-                btn.onclick = () => { currentYear = y; renderTabs(); loadData(); }; 
-                yTab.appendChild(btn);
-            });
+        window.onload = refreshData;
 
-            sTab.innerHTML = '';
-            semesters.forEach(s => {
-                const btn = document.createElement('button');
-                btn.className = `semester-tab px-3 py-2 rounded-lg font-bold text-sm border flex items-center justify-center gap-2 ${s.id === currentSemester ? 'active shadow-lg' : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'}`;
-                btn.innerHTML = `${s.icon} ${s.name}`;
-                btn.onclick = () => { currentSemester = s.id; renderTabs(); };
-                sTab.appendChild(btn);
-            });
+        // --- MODE & FILTER HANDLING ---
+        function setMode(m) {
+            state.mode = m;
+            const btnR = document.getElementById('modeRapor');
+            const btnI = document.getElementById('modeIdentitas');
+            const filters = document.getElementById('raporFilters');
+            const cardR = document.getElementById('cardStatRapor');
+            const cardI = document.getElementById('cardStatIdentitas');
+
+            if(m === 'RAPOR') {
+                btnR.className = "mode-active px-6 py-2 rounded-full text-xs font-bold flex items-center gap-2 transition-all";
+                btnI.className = "mode-inactive px-6 py-2 rounded-full text-xs font-bold flex items-center gap-2 transition-all";
+                filters.classList.remove('hidden', 'opacity-50', 'pointer-events-none');
+                cardR.classList.remove('hidden');
+                cardI.classList.add('hidden');
+            } else {
+                btnR.className = "mode-inactive px-6 py-2 rounded-full text-xs font-bold flex items-center gap-2 transition-all";
+                btnI.className = "mode-active px-6 py-2 rounded-full text-xs font-bold flex items-center gap-2 transition-all";
+                filters.classList.add('opacity-50', 'pointer-events-none'); // Disable filters visually
+                cardR.classList.add('hidden');
+                cardI.classList.remove('hidden');
+            }
+            renderGrid();
         }
 
-        // 2. LOAD DATA SISWA
-        async function loadData() {
-            document.getElementById('loader').classList.remove('hidden');
-            document.getElementById('grid').classList.add('hidden');
+        function setSemester(sem) {
+            state.semester = sem;
+            document.getElementById('btnGanjil').className = sem === 'ganjil' ? "px-4 py-1.5 rounded-lg text-[10px] font-bold uppercase transition bg-white text-primary shadow-sm" : "px-4 py-1.5 rounded-lg text-[10px] font-bold uppercase transition text-slate-500";
+            document.getElementById('btnGenap').className = sem === 'genap' ? "px-4 py-1.5 rounded-lg text-[10px] font-bold uppercase transition bg-white text-primary shadow-sm" : "px-4 py-1.5 rounded-lg text-[10px] font-bold uppercase transition text-slate-500";
+            refreshData();
+        }
+
+        // --- DATA FETCHING ---
+        async function refreshData() {
+            state.year = document.getElementById('selYear').value;
             
+            document.getElementById('loader').classList.remove('hidden');
+            document.getElementById('gridContainer').classList.add('hidden');
+            
+            // Reset Stats UI
+            state.stats = { rapor: 0, identitas: 0 };
+            updateStatsUI();
+
             try {
-                const res = await fetch(APP_URL, { method: 'POST', body: JSON.stringify({ action: 'read' }) });
-                allData = await res.json();
-                renderGrid(allData);
-            } catch (e) { Swal.fire('Error', 'Gagal memuat data', 'error'); }
-            finally { 
-                document.getElementById('loader').classList.add('hidden');
-                document.getElementById('grid').classList.remove('hidden');
+                // 1. Ambil Data Siswa
+                const res = await fetch(APP_URL, {method:'POST', body:JSON.stringify({action:'read'})});
+                state.students = await res.json();
+                
+                // 2. Cek Ledger (Hanya update jika di mode rapor, tapi kita panggil saja)
+                checkLedger();
+
+                // 3. Render & Mulai Lazy Loading Status File
+                renderGrid();
+                
+                // 4. Trigger cek status file individual untuk update statistik
+                queueFileChecks();
+
+            } catch(e) { console.error(e); }
+            
+            document.getElementById('loader').classList.add('hidden');
+            document.getElementById('gridContainer').classList.remove('hidden');
+        }
+
+        async function checkLedger() {
+            const btn = document.getElementById('btnLedger');
+            const info = document.getElementById('ledgerInfo');
+            const dl = document.getElementById('dlLedger');
+            
+            info.innerHTML = `Ledger<br>${state.year}<br>${state.semester.toUpperCase()}`;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Cek...';
+            btn.className = "flex-1 md:flex-none flex items-center justify-center gap-2 px-5 py-2.5 bg-slate-300 text-slate-500 rounded-xl text-xs font-bold transition shadow-sm";
+            dl.classList.add('hidden');
+
+            const res = await fetch(APP_URL, {
+                method:'POST', 
+                body:JSON.stringify({action:'checkLedger', year:state.year, semester:state.semester})
+            });
+            const r = await res.json();
+
+            if(r.exists) {
+                btn.innerHTML = '<i class="fa-solid fa-check"></i> Ada';
+                btn.className = "flex-1 md:flex-none flex items-center justify-center gap-2 px-5 py-2.5 bg-emerald-500 text-white rounded-xl text-xs font-bold transition shadow-lg shadow-emerald-200 hover:bg-emerald-600";
+                dl.href = r.url;
+                dl.classList.remove('hidden');
+            } else {
+                btn.innerHTML = '<i class="fa-solid fa-upload"></i> Upload';
+                btn.className = "flex-1 md:flex-none flex items-center justify-center gap-2 px-5 py-2.5 bg-white text-slate-500 border border-slate-300 rounded-xl text-xs font-bold transition hover:bg-slate-50";
             }
         }
 
-        function renderGrid(data) {
-            const grid = document.getElementById('grid');
+        function handleLedger() {
+            activeUpload = { target: 'LEDGER', year: state.year, semester: state.semester };
+            document.getElementById('fileInput').click();
+        }
+
+        // --- RENDERING ---
+        function renderGrid() {
+            const grid = document.getElementById('gridContainer');
             grid.innerHTML = '';
-            if(data.length === 0) { document.getElementById('emptyState').classList.remove('hidden'); return; }
+            
+            const total = state.students.length;
+            document.querySelectorAll('.totalSiswa').forEach(el => el.innerText = total);
+            
+            if(total === 0) {
+                document.getElementById('emptyState').classList.remove('hidden');
+                return;
+            }
             document.getElementById('emptyState').classList.add('hidden');
 
-            data.forEach((row, idx) => {
-                const el = document.createElement('div');
-                el.className = 'student-card glass bg-white p-5 rounded-2xl relative group';
-                el.innerHTML = `
-                    <div class="flex justify-between items-start mb-4">
-                        <div class="flex items-center gap-3">
-                            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 text-white flex items-center justify-center font-bold text-lg shadow-lg shadow-blue-100">
-                                ${row.nama.charAt(0)}
-                            </div>
-                            <div>
-                                <h4 class="font-bold text-slate-800 text-sm line-clamp-1" title="${row.nama}">${row.nama}</h4>
-                                <p class="text-xs text-slate-500 font-mono">${row.nis}</p>
-                            </div>
-                        </div>
-                        <button onclick="deleteStudent(${idx})" class="text-slate-300 hover:text-red-500 transition"><i class="fa-solid fa-trash-can"></i></button>
-                    </div>
-                    
-                    <button onclick="viewFiles(${idx})" class="w-full mb-3 py-3 bg-slate-800 text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2 hover:bg-slate-700 hover:shadow-lg transition">
-                        <i class="fa-regular fa-folder-open"></i> Buka File
-                    </button>
+            state.students.forEach((s, idx) => {
+                const colors = ['from-blue-400 to-indigo-500', 'from-purple-400 to-pink-500', 'from-emerald-400 to-teal-500', 'from-orange-400 to-amber-500'];
+                const grad = colors[idx % colors.length];
 
-                    <div class="grid grid-cols-2 gap-2">
-                        <button onclick="prepareUpload(${idx}, 'identitas')" class="py-2 border border-slate-200 rounded-lg text-xs font-bold text-slate-600 hover:bg-emerald-50 hover:text-emerald-600 hover:border-emerald-200 transition">
-                            <i class="fa-solid fa-id-card mb-1 block text-base"></i> Identitas
+                const card = document.createElement('div');
+                card.className = "glass-card p-5 rounded-3xl flex flex-col relative group";
+                
+                // Konten Berubah Tergantung Mode
+                let statusHTML = '';
+                let btnHTML = '';
+                
+                if (state.mode === 'RAPOR') {
+                    // TAMPILAN RAPOR
+                    statusHTML = `
+                        <div class="flex justify-between items-center mb-3 text-xs">
+                            <span class="text-slate-500 font-bold uppercase opacity-70">${state.semester}</span>
+                            <span id="stat-rap-${idx}" class="font-bold text-slate-300 text-[10px] bg-slate-100 px-2 py-0.5 rounded-full">...</span>
+                        </div>`;
+                    btnHTML = `
+                        <button onclick="prepUpload(${idx}, 'RAPOR')" class="w-full py-2.5 rounded-xl border border-slate-200 text-slate-600 text-xs font-bold hover:bg-primary hover:text-white hover:border-primary transition flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-cloud-arrow-up"></i> Upload Rapor
+                        </button>`;
+                } else {
+                    // TAMPILAN IDENTITAS
+                    statusHTML = `
+                        <div class="flex justify-between items-center mb-3 text-xs">
+                            <span class="text-slate-500 font-bold uppercase opacity-70">Biodata</span>
+                            <span id="stat-id-${idx}" class="font-bold text-slate-300 text-[10px] bg-slate-100 px-2 py-0.5 rounded-full">...</span>
+                        </div>`;
+                    btnHTML = `
+                        <button onclick="prepUpload(${idx}, 'IDENTITAS')" class="w-full py-2.5 rounded-xl border border-slate-200 text-slate-600 text-xs font-bold hover:bg-secondary hover:text-white hover:border-secondary transition flex items-center justify-center gap-2">
+                            <i class="fa-regular fa-id-card"></i> Upload Identitas
+                        </button>`;
+                }
+
+                card.innerHTML = `
+                    <div class="flex items-center gap-4 mb-5">
+                        <div class="w-12 h-12 rounded-2xl bg-gradient-to-br ${grad} flex items-center justify-center text-white font-bold text-lg shadow-md">
+                            ${s.nama.charAt(0)}
+                        </div>
+                        <div class="min-w-0">
+                            <h4 class="font-bold text-slate-800 text-sm truncate" title="${s.nama}">${s.nama}</h4>
+                            <p class="text-[10px] text-slate-500 font-mono bg-white/50 inline-block px-1.5 py-0.5 rounded mt-0.5 border border-white">${s.nis}</p>
+                        </div>
+                        <button onclick="delStudent(${s.row})" class="ml-auto w-8 h-8 rounded-full bg-red-50 text-red-400 hover:bg-red-500 hover:text-white transition flex items-center justify-center opacity-0 group-hover:opacity-100 shadow-sm">
+                            <i class="fa-solid fa-trash-can text-xs"></i>
                         </button>
-                        <button onclick="prepareUpload(${idx}, 'rapor')" class="py-2 border border-slate-200 rounded-lg text-xs font-bold text-slate-600 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition">
-                            <i class="fa-solid fa-file-lines mb-1 block text-base"></i> Rapor
-                        </button>
+                    </div>
+                    <div class="mt-auto">
+                        ${statusHTML}
+                        ${btnHTML}
                     </div>
                 `;
-                grid.appendChild(el);
+                grid.appendChild(card);
             });
         }
 
-        // 3. FUNGSI VIEW FILE
-        async function viewFiles(idx) {
-            const s = allData[idx];
-            document.getElementById('modalFiles').classList.remove('hidden');
-            document.getElementById('fileTitle').innerText = s.nama;
-            document.getElementById('fileSubtitle').innerText = `Folder: ${currentYear} (${currentSemester.toUpperCase()})`;
-            
-            const cont = document.getElementById('fileContainer');
-            cont.innerHTML = `<div class="text-center py-10"><i class="fa-solid fa-circle-notch fa-spin text-3xl text-blue-500"></i></div>`;
-
-            try {
-                const res = await fetch(APP_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({ 
-                        action: 'getStudentFiles', 
-                        folderId: s.folderId, 
-                        year: currentYear,      
-                        semester: currentSemester
-                    })
-                });
-                const r = await res.json();
-                
-                cont.innerHTML = '';
-                if(r.files.length === 0) {
-                    cont.innerHTML = `
-                        <div class="flex flex-col items-center justify-center h-64 text-slate-400">
-                            <i class="fa-regular fa-folder-open text-5xl mb-3 opacity-50"></i>
-                            <p>Belum ada file di ${currentYear} (${currentSemester})</p>
-                        </div>`;
-                    return;
-                }
-
-                r.files.forEach(f => {
-                    const isRapor = f.type === 'Rapor';
-                    cont.innerHTML += `
-                    <div class="flex items-center justify-between p-3 rounded-xl border mb-2 transition hover:shadow-md ${isRapor ? 'bg-blue-50 border-blue-100' : 'bg-emerald-50 border-emerald-100'}">
-                        <div class="flex items-center gap-3 overflow-hidden">
-                            <div class="w-10 h-10 rounded-lg bg-white flex items-center justify-center shadow-sm text-lg">
-                                <i class="fa-solid ${isRapor ? 'fa-file-lines text-blue-500' : 'fa-id-card text-emerald-500'}"></i>
-                            </div>
-                            <div class="min-w-0">
-                                <h4 class="text-sm font-bold text-slate-700 truncate">${f.name}</h4>
-                                <p class="text-[10px] text-slate-500">${new Date(f.date).toLocaleDateString()}</p>
-                            </div>
-                        </div>
-                        <a href="${f.url}" target="_blank" class="px-3 py-2 bg-white rounded-lg text-xs font-bold text-slate-600 border shadow-sm hover:bg-slate-50">
-                            Buka
-                        </a>
-                    </div>`;
-                });
-
-            } catch(e) { cont.innerHTML = '<p class="text-red-500 text-center">Gagal memuat file.</p>'; }
-        }
-
-        // 4. FUNGSI UPLOAD
-        function prepareUpload(idx, type) {
-            currentRow = allData[idx];
-            uploadType = type;
-            
-            if (type === 'rapor') {
-                document.getElementById('dispUpYear').innerText = currentYear;
-                document.getElementById('dispUpSem').innerText = currentSemester;
-                document.getElementById('uploadFileName').value = `Rapor ${currentSemester.toUpperCase()} - ${currentRow.nama}`;
-                document.getElementById('modalUpload').classList.remove('hidden');
-            } else {
-                uploadType = 'identitas';
-                document.getElementById('fileInput').click();
+        // --- LAZY STATUS CHECKING ---
+        async function queueFileChecks() {
+            // Kita cek status file satu per satu secara asynchronous agar UI tidak freeze
+            // Ini juga mengisi data statistik
+            for (let i = 0; i < state.students.length; i++) {
+                checkOneStudent(i);
+                // Delay kecil agar tidak spam request terlalu cepat
+                await new Promise(r => setTimeout(r, 100)); 
             }
         }
 
-        function confirmUpload() {
-            if(!document.getElementById('uploadFileName').value) return Swal.fire('Error','Nama file wajib diisi','warning');
+        async function checkOneStudent(idx) {
+            const s = state.students[idx];
+            // Cek RAPOR
+            const resR = await fetch(APP_URL, {method:'POST', body:JSON.stringify({
+                action:'checkStudentFile', folderId: s.folderId, type: 'RAPOR', year: state.year, semester: state.semester
+            })});
+            const rR = await resR.json();
+            if(rR.exists) {
+                const el = document.getElementById(`stat-rap-${idx}`);
+                if(el) { el.innerHTML = 'ADA'; el.className = "font-bold text-emerald-600 text-[10px] bg-emerald-100 px-2 py-0.5 rounded-full"; }
+                state.stats.rapor++;
+                updateStatsUI();
+            }
+
+            // Cek IDENTITAS
+            const resI = await fetch(APP_URL, {method:'POST', body:JSON.stringify({
+                action:'checkStudentFile', folderId: s.folderId, type: 'IDENTITAS'
+            })});
+            const rI = await resI.json();
+            if(rI.exists) {
+                const el = document.getElementById(`stat-id-${idx}`);
+                if(el) { el.innerHTML = 'LENGKAP'; el.className = "font-bold text-secondary text-[10px] bg-purple-100 px-2 py-0.5 rounded-full"; }
+                state.stats.identitas++;
+                updateStatsUI();
+            }
+        }
+
+        function updateStatsUI() {
+            const total = state.students.length || 1;
+            
+            // Rapor Stats
+            const pctR = Math.round((state.stats.rapor / total) * 100);
+            document.getElementById('countRapor').innerText = state.stats.rapor;
+            document.getElementById('barRapor').style.width = `${pctR}%`;
+            document.getElementById('pctRapor').innerText = `${pctR}% Selesai`;
+
+            // Identitas Stats
+            const pctI = Math.round((state.stats.identitas / total) * 100);
+            document.getElementById('countIdentitas').innerText = state.stats.identitas;
+            document.getElementById('barIdentitas').style.width = `${pctI}%`;
+            document.getElementById('pctIdentitas').innerText = `${pctI}% Selesai`;
+        }
+
+        // --- UPLOAD LOGIC ---
+        function prepUpload(idx, type) {
+            const s = state.students[idx];
+            activeUpload = { 
+                idx, target: type, folderId: s.folderId, fileName: s.nama, 
+                year: state.year, semester: state.semester 
+            };
             document.getElementById('fileInput').click();
         }
 
         document.getElementById('fileInput').addEventListener('change', async function(e) {
             const file = e.target.files[0];
-            if (!file) return;
-            e.target.value = '';
-            closeUploadModal();
+            if(!file) return;
+
+            // UI Feedback
+            if(activeUpload.target === 'LEDGER') {
+                document.getElementById('btnLedger').innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Uploading...';
+            } else {
+                const domId = activeUpload.target === 'RAPOR' ? `stat-rap-${activeUpload.idx}` : `stat-id-${activeUpload.idx}`;
+                const el = document.getElementById(domId);
+                if(el) { el.innerHTML = 'Uploading...'; el.className = "font-bold text-blue-500 text-[10px] animate-pulse"; }
+            }
 
             const reader = new FileReader();
             reader.readAsDataURL(file);
             reader.onload = async function() {
-                const base64 = reader.result.split(',')[1];
-                const mime = reader.result.split(';')[0].split(':')[1];
-
-                Swal.fire({ title: 'Mengupload...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-
-                let finalName = file.name;
-                
-                if (uploadType === 'rapor') {
-                    const cleanYear = currentYear.replace(/\//g, '-'); 
-                    const userFileName = document.getElementById('uploadFileName').value;
-                    finalName = `${cleanYear}_${currentSemester}_${userFileName}.pdf`;
-                } else if (uploadType === 'identitas') {
-                    finalName = `Identitas_${currentRow.nama}_${file.name}`;
-                } else if (uploadType === 'ledger') {
-                    finalName = `LEDGER_${new Date().toISOString().slice(0,10)}_${file.name}`;
-                }
-
                 try {
-                    const res = await fetch(APP_URL, {
-                        method: 'POST',
-                        body: JSON.stringify({
-                            action: 'upload',
-                            fileData: base64,
-                            mimeType: mime,
-                            fileName: finalName,
-                            folderId: uploadType === 'ledger' ? 'LEDGER' : currentRow.folderId,
-                            row: currentRow ? currentRow.row : null
-                        })
-                    });
+                    const payload = {
+                        action: 'upload',
+                        fileData: reader.result.split(',')[1],
+                        mimeType: file.type,
+                        ...activeUpload
+                    };
+                    const res = await fetch(APP_URL, {method:'POST', body:JSON.stringify(payload)});
                     const r = await res.json();
+                    
                     if(r.status === 'success') {
-                        Swal.fire('Berhasil', 'File tersimpan di database tahun ' + currentYear, 'success');
+                        Swal.fire({toast:true, position:'bottom-end', icon:'success', title:'Berhasil Upload', showConfirmButton:false, timer:2000});
+                        
+                        if(activeUpload.target === 'LEDGER') {
+                            checkLedger();
+                        } else {
+                            // Update Manual UI agar tidak perlu refresh full
+                            const isRap = activeUpload.target === 'RAPOR';
+                            const el = document.getElementById(isRap ? `stat-rap-${activeUpload.idx}` : `stat-id-${activeUpload.idx}`);
+                            if(el) {
+                                el.innerHTML = isRap ? 'ADA' : 'LENGKAP';
+                                el.className = isRap ? "font-bold text-emerald-600 text-[10px] bg-emerald-100 px-2 py-0.5 rounded-full" : "font-bold text-secondary text-[10px] bg-purple-100 px-2 py-0.5 rounded-full";
+                            }
+                            // Update Count
+                            if(isRap) state.stats.rapor++; else state.stats.identitas++;
+                            updateStatsUI();
+                        }
                     } else throw new Error(r.message);
-                } catch (err) { Swal.fire('Gagal', err.message, 'error'); }
+                } catch(e) { Swal.fire('Error', e.message, 'error'); }
             };
+            e.target.value = '';
         });
 
-        // Helper
-        function filterStudents() {
-            const q = document.getElementById('search').value.toLowerCase();
-            renderGrid(allData.filter(s => s.nama.toLowerCase().includes(q) || String(s.nis).includes(q)));
+        // --- CRUD SISWA ---
+        async function saveStudent() {
+            const nama = document.getElementById('newNama').value;
+            const nis = document.getElementById('newNis').value;
+            if(!nama || !nis) return;
+            
+            document.getElementById('modalAdd').classList.add('hidden');
+            Swal.fire({title:'Menyimpan...', didOpen:()=>Swal.showLoading()});
+            
+            await fetch(APP_URL, {method:'POST', body:JSON.stringify({action:'add', nama, nis})});
+            refreshData(); // Reload data
+            Swal.fire('Sukses', 'Data siswa ditambahkan', 'success');
         }
-        function closeAddModal() { document.getElementById('modalAdd').classList.add('hidden'); }
-        function openAddModal() { document.getElementById('modalAdd').classList.remove('hidden'); }
-        function closeUploadModal() { document.getElementById('modalUpload').classList.add('hidden'); }
-        function triggerUploadLedger() { uploadType = 'ledger'; document.getElementById('fileInput').click(); }
-        
-        async function addStudent() {
-             const nama = document.getElementById('newNama').value;
-             const nis = document.getElementById('newNis').value;
-             if(!nama || !nis) return;
-             closeAddModal(); Swal.fire({title:'Menyimpan...',didOpen:()=>Swal.showLoading()});
-             try {
-                await fetch(APP_URL, { method:'POST', body:JSON.stringify({action:'add', nama, nis})});
-                loadData(); Swal.fire('Sukses','','success');
-             } catch(e) { Swal.fire('Error','','error'); }
-        }
-        function deleteStudent(idx) {
-            Swal.fire({title:'Hapus?', icon:'warning', showCancelButton:true, confirmButtonText:'Ya'}).then(async r=>{
+
+        function delStudent(row) {
+            Swal.fire({title:'Hapus Siswa?', icon:'warning', showCancelButton:true, confirmButtonColor:'#ef4444', confirmButtonText:'Hapus'}).then(async r=>{
                 if(r.isConfirmed) {
-                    await fetch(APP_URL,{method:'POST',body:JSON.stringify({action:'delete',row:allData[idx].row})});
-                    loadData();
+                    await fetch(APP_URL, {method:'POST', body:JSON.stringify({action:'delete', row})});
+                    refreshData();
                 }
+            });
+        }
+
+        function filterGrid() {
+            const q = document.getElementById('searchInput').value.toLowerCase();
+            const cards = document.querySelectorAll('#gridContainer > div');
+            cards.forEach(c => {
+                c.style.display = c.innerText.toLowerCase().includes(q) ? 'flex' : 'none';
             });
         }
     </script>
