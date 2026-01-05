@@ -1,176 +1,170 @@
-// =======================================================
-// 1. KONFIGURASI SISTEM
-// =======================================================
+/**
+ * KONFIGURASI UTAMA
+ * Ganti ID di bawah ini dengan ID Spreadsheet dan Folder Google Drive Anda.
+ */
 const CONFIG = {
-  SHEET_ID: "1S9Ed1Ad1bmBxEUacbb4BN0Ipe2Qw-b3X2xQ5YUObX4I", 
-  SHEET_NAME: "Sheet1",
-  PARENT_FOLDER_ID: "1lr5IvQGrflG5m10vbRagl-9vDlr7xRz7",
-  LEDGER_FOLDER_ID: "1v8375dOSCgA3rJcFia-E_FLNkAhZm32F"
+  SHEET_ID: "1S9Ed1Ad1bmBxEUacbb4BN0Ipe2Qw-b3X2xQ5YUObX4I", // ID Spreadsheet Database
+  SHEET_NAME: "Sheet1",                                     // Nama Sheet
+  PARENT_FOLDER_ID: "1lr5IvQGrflG5m10vbRagl-9vDlr7xRz7",    // ID Folder Induk Siswa
+  LEDGER_FOLDER_ID: "1v8375dOSCgA3rJcFia-E_FLNkAhZm32F"     // ID Folder Ledger
 };
 
-// =======================================================
-// 2. API GATEWAY
-// =======================================================
-function doGet(e) { return handleRequest(e, true); }
-function doPost(e) { return handleRequest(e, false); }
+// ==========================================
+// CORE SYSTEM
+// ==========================================
 
-function handleRequest(e, isGet) {
+function doGet(e) {
+  return HtmlService.createHtmlOutputFromFile('Index')
+    .setTitle('Admin Rapor - R.A. Ririhena, S.MG')
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
+    .addMetaTag('viewport', 'width=device-width, initial-scale=1');
+}
+
+function doPost(e) {
   const lock = LockService.getScriptLock();
-  lock.tryLock(30000); 
+  lock.tryLock(10000);
+  
   try {
-    let action = isGet ? e.parameter.action : JSON.parse(e.postData.contents).action;
-    let data = isGet ? e.parameter : JSON.parse(e.postData.contents);
-    let result;
+    const data = JSON.parse(e.postData.contents);
+    let res;
 
-    switch (action) {
-      case "read": result = getAllStudents(); break;
-      case "checkStatus": result = checkFolderStatus(data.folderId); break;
-      // LOGIKA BARU: Menerima parameter year dan semester
-      case "getStudentFiles": result = getStudentFiles(data.folderId, data.year, data.semester); break; 
-      case "add": result = addStudent(data); break;
-      case "delete": result = deleteStudent(data.row); break;
-      case "upload": result = uploadFileToDrive(data); break;
-      default: result = { status: "error", message: "Action Unknown: " + action };
+    switch (data.action) {
+      case "read": res = getAllStudents(); break;
+      case "add": res = addStudent(data); break;
+      case "delete": res = deleteStudent(data.row); break;
+      case "upload": res = uploadFile(data); break;
+      case "checkLedger": res = checkLedger(data.year, data.semester); break;
+      case "checkStudentFile": res = checkStudentFile(data); break; // Cek status file per siswa
+      default: res = { status: "error", message: "Aksi tidak dikenal" };
     }
-    return responseJSON(result);
+    
+    return response(res);
   } catch (err) {
-    return responseJSON({ status: "error", message: err.toString() });
+    return response({ status: "error", message: err.toString() });
   } finally {
     lock.releaseLock();
   }
 }
 
-// =======================================================
-// 3. LOGIKA BISNIS
-// =======================================================
-function responseJSON(data) {
+function response(data) {
   return ContentService.createTextOutput(JSON.stringify(data)).setMimeType(ContentService.MimeType.JSON);
 }
+
+// ==========================================
+// DATABASE & DRIVE FUNCTIONS
+// ==========================================
 
 function getAllStudents() {
   const ss = SpreadsheetApp.openById(CONFIG.SHEET_ID);
   const sheet = ss.getSheetByName(CONFIG.SHEET_NAME);
   const lastRow = sheet.getLastRow();
+  
   if (lastRow < 2) return [];
-  const values = sheet.getRange(2, 1, lastRow - 1, 7).getValues();
-  return values.map((row, i) => ({
+  
+  const values = sheet.getRange(2, 1, lastRow - 1, 5).getValues();
+  return values.map((r, i) => ({
     row: i + 2,
-    no: row[0], nis: row[1], nama: row[2], kelas: row[3], folderId: row[4],
-    hasIdentitas: row[5] === "ADA", hasRapor: row[6] === "ADA"
+    no: r[0], nis: r[1], nama: r[2], kelas: r[3], folderId: r[4]
   }));
 }
 
-// FUNGSI UTAMA: FILTER FILE BERDASARKAN TAHUN & SEMESTER
-function getStudentFiles(folderId, yearStr, semesterStr) {
-  if (!folderId) return { status: "error", message: "Folder ID missing" };
-  
+// Cek Ledger Global
+function checkLedger(year, semester) {
   try {
-    const folder = DriveApp.getFolderById(folderId);
+    const folder = DriveApp.getFolderById(CONFIG.LEDGER_FOLDER_ID);
     const files = folder.getFiles();
-    let fileList = [];
+    const tag = `LEDGER_${year.replace('/','-')}_${semester.toUpperCase()}`;
     
-    // Konversi input UI ke format nama file
-    // Input: "2024/2025" -> Jadi: "2024-2025" (karena nama file tidak boleh ada garis miring)
-    // Input: "ganjil" -> Jadi: "ganjil"
-    const searchYear = yearStr ? yearStr.replace(/\//g, '-') : ""; 
-    const searchSem = semesterStr ? semesterStr.toLowerCase() : "";
+    while(files.hasNext()){
+      let f = files.next();
+      if(f.getName().includes(tag) && !f.isTrashed()) {
+        return { exists: true, url: f.getUrl(), name: f.getName() };
+      }
+    }
+    return { exists: false };
+  } catch(e) { return { exists: false, error: e.message }; }
+}
+
+// Cek Status File Siswa (Identitas / Rapor)
+function checkStudentFile(data) {
+  try {
+    if(!data.folderId) return { exists: false };
+    const folder = DriveApp.getFolderById(data.folderId);
+    const files = folder.getFiles();
+    
+    let searchTag = "";
+    if (data.type === 'RAPOR') {
+      // Tag: 2024-2025_GANJIL_RAPOR
+      searchTag = `${data.year.replace('/','-')}_${data.semester.toUpperCase()}_RAPOR`;
+    } else {
+      searchTag = "IDENTITAS";
+    }
 
     while (files.hasNext()) {
       let f = files.next();
-      let name = f.getName();
-      let lowerName = name.toLowerCase();
-      
-      let isMatch = false;
-      let type = "Lainnya";
-
-      // LOGIKA FILTER
-      if (lowerName.includes("identitas")) {
-        // Identitas muncul di semua tahun (bersifat global)
-        isMatch = true; 
-        type = "Identitas";
-      } else if (lowerName.includes("rapor")) {
-        // Rapor harus COCOK Tahun DAN Semesternya
-        // Contoh nama file: "2024-2025_ganjil_Rapor_Budi.pdf"
-        if (name.includes(searchYear) && lowerName.includes(searchSem)) {
-          isMatch = true;
-          type = "Rapor";
-        }
-      }
-
-      if (isMatch) {
-         fileList.push({
-          name: name,
-          url: f.getUrl(),
-          type: type,
-          date: f.getLastUpdated(),
-          size: f.getSize()
-        });
+      if (f.getName().includes(searchTag) && !f.isTrashed()) {
+        return { exists: true };
       }
     }
-    
-    // Urutkan file terbaru di atas
-    fileList.sort((a, b) => b.date - a.date);
-    
-    return { status: "success", files: fileList };
-  } catch (e) {
-    return { status: "error", message: e.message };
-  }
+    return { exists: false };
+  } catch (e) { return { exists: false }; }
 }
 
-function checkFolderStatus(folderId) {
-  if (folderId === "LEDGER") {
-    const folder = DriveApp.getFolderById(CONFIG.LEDGER_FOLDER_ID);
-    const files = folder.getFiles();
-    return { status: "success", totalFiles: 0 }; // Sederhana saja untuk performa
+function uploadFile(data) {
+  try {
+    // Tentukan folder tujuan
+    const targetId = (data.target === "LEDGER") ? CONFIG.LEDGER_FOLDER_ID : data.folderId;
+    const folder = DriveApp.getFolderById(targetId);
+    
+    let finalName = "";
+    const cleanYear = data.year ? data.year.replace('/', '-') : "";
+    const cleanSem = data.semester ? data.semester.toUpperCase() : "";
+
+    // FORMAT NAMA FILE (PENTING AGAR TIDAK TERTUKAR)
+    if (data.target === "LEDGER") {
+      finalName = `LEDGER_${cleanYear}_${cleanSem}_${data.fileName}`;
+      deleteOldFiles(folder, `LEDGER_${cleanYear}_${cleanSem}`); // Hapus versi lama
+    } else if (data.target === "RAPOR") {
+      finalName = `${cleanYear}_${cleanSem}_RAPOR_${data.fileName}`;
+      deleteOldFiles(folder, `${cleanYear}_${cleanSem}_RAPOR`);
+    } else if (data.target === "IDENTITAS") {
+      finalName = `IDENTITAS_${data.fileName}`;
+      deleteOldFiles(folder, "IDENTITAS");
+    }
+
+    const decoded = Utilities.base64Decode(data.fileData);
+    const blob = Utilities.newBlob(decoded, data.mimeType, finalName);
+    const file = folder.createFile(blob);
+    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+
+    return { status: "success", url: file.getUrl() };
+  } catch (e) { return { status: "error", message: e.message }; }
+}
+
+function deleteOldFiles(folder, partialName) {
+  const files = folder.getFiles();
+  while (files.hasNext()) {
+    let f = files.next();
+    if (f.getName().includes(partialName)) f.setTrashed(true);
   }
-  return { status: "success" };
 }
 
 function addStudent(data) {
   const ss = SpreadsheetApp.openById(CONFIG.SHEET_ID);
   const sheet = ss.getSheetByName(CONFIG.SHEET_NAME);
-  const parentFolder = DriveApp.getFolderById(CONFIG.PARENT_FOLDER_ID);
-  const folderName = `${data.nama} - ${data.nis}`;
-  const newFolder = parentFolder.createFolder(folderName);
+  
+  // Buat Folder Drive
+  const parent = DriveApp.getFolderById(CONFIG.PARENT_FOLDER_ID);
+  const newFolder = parent.createFolder(`${data.nama} - ${data.nis}`);
   newFolder.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+  
   const newNo = Math.max(1, sheet.getLastRow());
-  sheet.appendRow([newNo, data.nis, data.nama, "X AKL", newFolder.getId(), "", ""]); 
+  sheet.appendRow([newNo, data.nis, data.nama, "X", newFolder.getId()]);
   return { status: "success" };
 }
 
 function deleteStudent(row) {
   const sheet = SpreadsheetApp.openById(CONFIG.SHEET_ID).getSheetByName(CONFIG.SHEET_NAME);
-  sheet.deleteRow(parseInt(row));
+  sheet.deleteRow(Number(row));
   return { status: "success" };
-}
-
-function uploadFileToDrive(data) {
-  try {
-    if (!data.folderId) return { status: "error", message: "Folder ID Missing" };
-
-    const targetId = (data.folderId === "LEDGER") ? CONFIG.LEDGER_FOLDER_ID : data.folderId;
-    const folder = DriveApp.getFolderById(targetId);
-    
-    // Hapus file LAMA hanya jika Namanya SAMA PERSIS (Overwrite protection)
-    const existing = folder.getFilesByName(data.fileName);
-    while (existing.hasNext()) existing.next().setTrashed(true);
-    
-    const decoded = Utilities.base64Decode(data.fileData);
-    const blob = Utilities.newBlob(decoded, data.mimeType, data.fileName);
-    const file = folder.createFile(blob);
-    
-    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-    
-    // Update Spreadsheet Status (Indikator Umum)
-    if (data.folderId !== "LEDGER" && data.row) {
-      const sheet = SpreadsheetApp.openById(CONFIG.SHEET_ID).getSheetByName(CONFIG.SHEET_NAME);
-      const lowerName = data.fileName.toLowerCase();
-      if(lowerName.includes("identitas")) sheet.getRange(data.row, 6).setValue("ADA");
-      if(lowerName.includes("rapor")) sheet.getRange(data.row, 7).setValue("ADA");
-    }
-    
-    return { status: "success", url: file.getUrl() };
-  } catch (e) {
-    return { status: "error", message: "Upload Failed: " + e.message };
-  }
 }
